@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Interface</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        #question {
+            font-size: 20px;
+            margin-bottom: 20px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Welcome to the Test</h1>
+    <button id="startTestBtn">Start Test</button>
+    <div id="question"></div>
+    <audio id="audio" controls></audio>
+
+    <div id="responseButtons" style="display: none;">
+        <button id="neverBtn">Never or Rarely</button>
+        <button id="sometimesBtn">Sometimes</button>
+        <button id="oftenBtn">Often</button>
+        <button id="veryOftenBtn">Very Often</button>
+    </div>
+
+    <script>
+        const startTestBtn = document.getElementById('startTestBtn');
+        const questionDiv = document.getElementById('question');
+        const audioElement = document.getElementById('audio');
+        const responseButtons = document.getElementById('responseButtons');
+
+        // To hold the current question and its related data
+        let currentQuestion = null;
+
+        // Start test button click handler
+        startTestBtn.addEventListener('click', async () => {
+            try {
+                // Fetch the start-test route from FastAPI
+                const response = await fetch('http://127.0.0.1:8000/start-test');
+                const data = await response.json();
+
+                // Display the first question and load the audio
+                currentQuestion = data;
+                questionDiv.innerText = data.question;
+                audioElement.src = `http://127.0.0.1:8000/static/${data.audio}`;
+                responseButtons.style.display = 'block';  // Show response buttons
+            } catch (error) {
+                console.error('Error starting the test:', error);
+            }
+        });
+
+        // Button click handlers for responses
+        document.getElementById('neverBtn').addEventListener('click', async () => handleResponse('Never or Rarely'));
+        document.getElementById('sometimesBtn').addEventListener('click', async () => handleResponse('Sometimes'));
+        document.getElementById('oftenBtn').addEventListener('click', async () => handleResponse('Often'));
+        document.getElementById('veryOftenBtn').addEventListener('click', async () => handleResponse('Very Often'));
+
+        // Handle the response and fetch the next question
+        async function handleResponse(response) {
+            try {
+                // Here, you can save the response in a database or log it
+                console.log(`Patient responded with: ${response}`);
+
+                // You can send the response to the server if needed (e.g., for logging or scoring)
+
+                // Now, fetch the next question
+                const nextResponse = await fetch('http://127.0.0.1:8000/next-question');
+                const nextData = await nextResponse.json();
+
+                // Display the next question and load the next audio
+                currentQuestion = nextData;
+                questionDiv.innerText = nextData.question;
+                audioElement.src = `http://127.0.0.1:8000/static/${nextData.audio}`;
+            } catch (error) {
+                console.error('Error handling response:', error);
+            }
+        }
+    </script>
+</body>
+</html>

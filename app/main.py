@@ -1,1 +1,35 @@
-from fastapi import FastAPIfrom fastapi.responses import JSONResponse, FileResponsefrom fastapi.staticfiles import StaticFilesimport boto3import osapp = FastAPI()# Ensure speech_outputs directory existsos.makedirs("speech_outputs", exist_ok=True)# Mount static directory to serve audio filesapp.mount("/speech_outputs", StaticFiles(directory="speech_outputs"), name="speech_outputs")# AWS Polly client setup (ensure your AWS credentials are configured)polly_client = boto3.client('polly', region_name='us-east-1')# Welcome route@app.get("/")async def read_root():    return FileResponse("static/index.html")# Generate speech using AWS Pollydef generate_speech(text, filename):    response = polly_client.synthesize_speech(        Text=text,        OutputFormat="mp3",        VoiceId="Joanna"    )    filepath = f"speech_outputs/{filename}"    with open(filepath, "wb") as f:        f.write(response['AudioStream'].read())    return filepath# Start test route@app.get("/start_test")async def start_test():    question = "Are you ready to begin?"    audio_path = generate_speech(question, "intro.mp3")    return JSONResponse(content={"message": "Starting test", "question": question, "audio": f"/{audio_path}"})# Next question route@app.get("/next_question/{index}")async def next_question(index: int):    questions = [        "Do you often have trouble wrapping up the final details of a project once the challenging parts are done?",        "Do you often procrastinate on tasks that require sustained mental effort?",        "Do you find yourself frequently distracted by external stimuli?"    ]        if index < len(questions):        question = questions[index]        audio_path = generate_speech(question, f"question_{index}.mp3")        return JSONResponse(content={"message": "Next question", "question": question, "audio": f"/{audio_path}"})    else:        return JSONResponse(content={"message": "Test complete!"})
+from fastapi import FastAPI
+from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+
+app = FastAPI()
+
+# Allow cross-origin requests from localhost:8080 (Windows side)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:8080"],  # Only allow frontend from localhost:8080
+    allow_credentials=True,
+    allow_methods=["*"],  # Allows all methods (GET, POST, etc.)
+    allow_headers=["*"],  # Allows all headers
+)
+
+# Serve static files (audio files, for example)
+app.mount("/static", StaticFiles(directory="/home/sherm/baars_iv_project/speech_outputs"), name="static")
+
+@app.get("/start-test")
+async def start_test():
+    # This route sends a sample question and audio file information
+    return JSONResponse({
+        "message": "Test Started",
+        "question": "Are you ready to begin?",
+        "audio": "speech.mp3"
+    })
+
+# Additional routes for fetching the questions (if needed)
+@app.get("/next-question")
+async def next_question():
+    return JSONResponse({
+        "question": "Do you often have trouble wrapping up the final details of a project once the challenging parts are done?",
+        "audio": "speech_outputs/question_0.mp3"
+    })

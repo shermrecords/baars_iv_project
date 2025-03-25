@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>BAARS-IV Test</title>
+</head>
+
+<body>
+    <h1>BAARS-IV Verbal Test</h1>
+    <button id="startTestBtn">Start Test</button>
+    <div id="questionContainer"></div>
+    <audio id="audioPlayer" controls></audio>
+    
+    <!-- Record Button -->
+    <button id="recordBtn">Record Response</button>
+    <p id="transcriptionOutput"></p>
+
+    <script>
+        // Start Test Handler
+        document.getElementById("startTestBtn").addEventListener("click", async () => {
+            try {
+                const response = await fetch("http://127.0.0.1:8000/start-test", {
+                    method: "GET"
+                });
+                if (!response.ok) throw new Error("Failed to start test");
+
+                const data = await response.json();
+                document.getElementById("questionContainer").innerText = data.question;
+
+                // Play audio for the question
+                const audioPlayer = document.getElementById("audioPlayer");
+                audioPlayer.src = data.audio; // Use the audio URL returned from the backend
+                audioPlayer.play();
+            } catch (error) {
+                console.error("Error starting the test:", error);
+            }
+        });
+
+        // Record Response Handler
+        const recordBtn = document.getElementById("recordBtn");
+        let mediaRecorder;
+        let audioChunks = [];
+
+        recordBtn.addEventListener("click", async () => {
+            if (!mediaRecorder) {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    mediaRecorder = new MediaRecorder(stream);
+
+                    mediaRecorder.ondataavailable = (event) => {
+                        audioChunks.push(event.data);
+                    };
+
+                    mediaRecorder.onstop = async () => {
+                        const audioBlob = new Blob(audioChunks, { type: "audio/wav" });
+                        audioChunks = [];
+
+                        // Upload Audio to FastAPI
+                        const formData = new FormData();
+                        formData.append("audio_file", audioBlob, "response.wav");
+
+                        const uploadResponse = await fetch("http://127.0.0.1:8000/upload-response", {
+                            method: "POST",
+                            body: formData,
+                        });
+
+                        if (!uploadResponse.ok) throw new Error("Upload failed");
+
+                        const transcription = await uploadResponse.json();
+                        document.getElementById("transcriptionOutput").innerText = "Transcription: " + transcription.text;
+                    };
+
+                    mediaRecorder.start();
+                    recordBtn.innerText = "Stop Recording";
+                } catch (error) {
+                    console.error("Error recording audio:", error);
+                }
+            } else {
+                mediaRecorder.stop();
+                recordBtn.innerText = "Record Response";
+                mediaRecorder = null;
+            }
+        });
+    </script>
+
+</body>
+
+</html>

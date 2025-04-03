@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BAARS-IV Test</title>
+</head>
+<body>
+    <h1>Welcome to the BAARS-IV Test</h1>
+    <p>Please follow the instructions and answer the questions verbally.</p>
+    <button onclick="startTest()">Start Test</button>
+
+    <script>
+        async function startTest() {
+            let response = await fetch("/start-test");
+            let data = await response.json();
+            if (data.question) {
+                // Play the audio for the question
+                let audio = new Audio(data.audio);
+                audio.play();
+                alert(data.question);
+            }
+        }
+    </script>
+</body>
+</html>

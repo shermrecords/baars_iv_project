@@ -12,8 +12,26 @@
         "s3:GetObject"
       ],
       "Resource": "arn:aws:s3:::baarsdump/audio/*"
+    },
+    {
+      "Sid": "AllowTranscribeServiceAccess",
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "transcribe.amazonaws.com"
+      },
+      "Action": [
+        "s3:GetObject"
+      ],
+      "Resource": "arn:aws:s3:::baarsdump/audio/*"
+    },
+    {
+      "Sid": "AllowPublicReadAccess",
+      "Effect": "Allow",
+      "Principal": "*",
+      "Action": [
+        "s3:GetObject"
+      ],
+      "Resource": "arn:aws:s3:::baarsdump/audio/*"
     }
   ]
 }
-
-
